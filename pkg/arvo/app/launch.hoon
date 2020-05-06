@@ -71,7 +71,7 @@
 ++  on-save  !>(state)
 ::
 ++  on-load
-  |=  old=vase
+  |=  [old=vase breach=?]
   ^-  (quip card _this)
   =/  old-state  !<(versioned-state old)
   =|  cards=(list card)

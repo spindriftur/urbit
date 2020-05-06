@@ -143,7 +143,8 @@
   !>([%5 lac])
 ::
 ++  on-load
-  |=  =old-state=vase
+  |=  [=old-state=vase breach=?]
+  ?:  breach  `..on-init
   =/  old-state  !<(hood-old old-state-vase)
   =^  cards  lac
     =.  lac  lac.old-state

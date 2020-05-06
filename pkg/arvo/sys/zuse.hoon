@@ -2291,7 +2291,7 @@
         *vase
       ::
       ++  on-load
-        |~  old-state=vase
+        |~  [old-state=vase breached=?]
         *(quip card _^|(..on-init))
       ::
       ++  on-poke
