@@ -289,6 +289,9 @@
         c3_o    veb;                        //  -v, verbose (inverse of -q)
         c3_c*   who_c;                      //  -w, begin with ticket
         c3_o    tex;                        //  -x, exit after loading
+        c3_c*   pec_c;                      //  -X, scry care
+        c3_c*   ped_c;                      //  -Y, scry desk
+        c3_c*   pep_c;                      //  -Z, scry path
       } u3_opts;
 
     /* u3_host: entire host.
