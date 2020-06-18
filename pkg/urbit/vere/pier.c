@@ -936,12 +936,16 @@ _pier_on_scry_done(void* vod_p, u3_noun nun)
     c3_y* dat_y = c3_malloc(siz_w);
     u3r_bytes(0, siz_w, dat_y, jam);
 
+    c3_c* nam_c = u3_Host.ops_u.puk_c;
+    if (!nam_c) {
+      nam_c = "scry";
+    }
     c3_c fil_c[2048];
-    snprintf(fil_c, 2048, "%s/.urb/put/scry.jam", pir_u->pax_c);
+    snprintf(fil_c, 2048, "%s/.urb/put/%s.jam", pir_u->pax_c, nam_c);
     FILE* fil_u = fopen(fil_c, "w");
     fwrite(dat_y, 1, siz_w, fil_u);
 
-    u3l_log("pier: scry in .urb/put/scry.jam\n");
+    u3l_log("pier: scry in .urb/put/%s.jam\n", nam_c);
     fclose(fil_u);
     c3_free(dat_y);
   }
@@ -980,22 +984,23 @@ _pier_on_lord_live(void* vod_p)
     c3_assert( u3_psat_init == pir_u->sat_e );
     c3_assert( log_u->sen_d == log_u->dun_d );
 
-    if (u3_Host.ops_u.pec_c && u3_Host.ops_u.ped_c && u3_Host.ops_u.pep_c) {
-      c3_m car_m;
-      if (!u3_Host.ops_u.pec_c[1]) {
-        car_m = c3_s1(u3_Host.ops_u.pec_c[0]);
+    if (u3_Host.ops_u.pek_c) {
+      u3_noun pex = u3do("stab", u3i_string(u3_Host.ops_u.pek_c));
+      u3_noun car;
+      u3_noun dek;
+      u3_noun pax;
+      if ( c3n == u3r_trel(pex, &car, &dek, &pax)
+        || c3n == u3a_is_cat(car) )
+      {
+        u3m_p("pier: invalid scry", pex);
+        _pier_on_scry_done(pir_u, c3__null);
       } else {
-        car_m = c3_s2(u3_Host.ops_u.pec_c[0], u3_Host.ops_u.pec_c[1]);
+        //  run the requested scry, jam to disk, then exit
+        //
+        u3l_log("pier: scry\n");
+        u3_lord_peek_last(god_u, u3_nul, car, dek, pax,
+                          pir_u, _pier_on_scry_done);
       }
-
-      u3_noun dek = u3i_string(u3_Host.ops_u.ped_c);
-      u3_noun pax = u3do("stab", u3i_string(u3_Host.ops_u.pep_c));
-
-      //  run the requested scry, jam to disk, then exit
-      //
-      u3l_log("pier: scry\n");
-      u3_lord_peek_last(god_u, u3_nul, car_m, dek, pax,
-                        pir_u, _pier_on_scry_done);
     }
     else if ( god_u->eve_d < log_u->dun_d ) {
       c3_d eve_d;
