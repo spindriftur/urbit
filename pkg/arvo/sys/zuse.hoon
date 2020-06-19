@@ -2205,6 +2205,7 @@
       $%  [$conf p=dock q=dock]                         ::  configure app
           [$deal p=sock q=term r=deal]                  ::  full transmission
           [%goad force=? agent=(unit dude)]             ::  rebuild agent(s)
+          [%book =lore]                                 ::  import state
           [%sear =ship]                                 ::  clear pending queues
           $>(%init vane-task)                           ::  set owner
           $>(%trim vane-task)                           ::  trim state
@@ -2233,6 +2234,7 @@
           ==  ==                                        ::
   ++  dude  term                                        ::  server identity
   ++  gill  (pair ship term)                            ::  general contact
+  ++  lore  (map dude ,[state=* wex=boat sup=bitt])     ::  jammed state for backup
   ++  scar                                              ::  opaque duct
     $:  p=@ud                                           ::  bone sequence
         q=(map duct bone)                               ::  by duct
@@ -2289,7 +2291,7 @@
         *vase
       ::
       ++  on-load
-        |~  old-state=vase
+        |~  [old-state=vase breached=?]
         *(quip card _^|(..on-init))
       ::
       ++  on-poke
@@ -2768,6 +2770,9 @@
       ::  %behn: wakeup
       ::
       $>(%wake task:able:behn)
+      ::  %gall: import old state
+      ::
+      $>(%book task:able:gall)
   ==
 --  ::
 ::                                                      ::  ::
@@ -3642,62 +3647,53 @@
     ::                                                  ::  ++s2va:aes:crypto
     ++  s2va                                            ::  AES-128 S2V
       ~/  %s2va
-      |=  {key/@H ads/(list @)}
-      =+  res=(maca key `16 0x0)
-      %^  maca  key  ~
-      |-  ^-  @uxH
+      |=  [key=@H ads=(list @)]
       ?~  ads  (maca key `16 0x1)
+      =/  res  (maca key `16 0x0)
+      %+  maca  key
+      |-  ^-  [[~ @ud] @uxH]
       ?~  t.ads
-        ?:  (gte (xeb i.ads) 128)
-          (mix i.ads res)
-        %+  mix
-          (doub res)
-          (mpad (met 3 i.ads) i.ads)
+        =/  wyt  (met 3 i.ads)
+        ?:  (gte wyt 16)
+          [`wyt (mix i.ads res)]
+        [`16 (mix (doub res) (mpad wyt i.ads))]
       %=  $
-        res  %+  mix
-               (doub res)
-               (maca key ~ i.ads)
         ads  t.ads
+        res  (mix (doub res) (maca key ~ i.ads))
       ==
     ::                                                  ::  ++s2vb:aes:crypto
     ++  s2vb                                            ::  AES-192 S2V
       ~/  %s2vb
-      |=  {key/@I ads/(list @)}
-      =+  res=(macb key `16 0x0)
-      %^  macb  key  ~
-      |-  ^-  @uxH
+      |=  [key=@I ads=(list @)]
       ?~  ads  (macb key `16 0x1)
+      =/  res  (macb key `16 0x0)
+      %+  macb  key
+      |-  ^-  [[~ @ud] @uxH]
       ?~  t.ads
-        ?:  (gte (xeb i.ads) 128)
-          (mix i.ads res)
-        %+  mix
-          (doub res)
-          (mpad (met 3 i.ads) i.ads)
+        =/  wyt  (met 3 i.ads)
+        ?:  (gte wyt 16)
+          [`wyt (mix i.ads res)]
+        [`16 (mix (doub res) (mpad wyt i.ads))]
       %=  $
-        res  %+  mix
-               (doub res)
-               (macb key ~ i.ads)
         ads  t.ads
+        res  (mix (doub res) (macb key ~ i.ads))
       ==
     ::                                                  ::  ++s2vc:aes:crypto
     ++  s2vc                                            ::  AES-256 S2V
       ~/  %s2vc
-      |=  {key/@I ads/(list @)}
-      =+  res=(macc key `16 0x0)
-      %^  macc  key  ~
-      |-  ^-  @uxH
+      |=  [key=@I ads=(list @)]
       ?~  ads  (macc key `16 0x1)
+      =/  res  (macc key `16 0x0)
+      %+  macc  key
+      |-  ^-  [[~ @ud] @uxH]
       ?~  t.ads
-        ?:  (gte (xeb i.ads) 128)
-          (mix i.ads res)
-        %+  mix
-          (doub res)
-          (mpad (met 3 i.ads) i.ads)
+        =/  wyt  (met 3 i.ads)
+        ?:  (gte wyt 16)
+          [`wyt (mix i.ads res)]
+        [`16 (mix (doub res) (mpad wyt i.ads))]
       %=  $
-        res  %+  mix
-               (doub res)
-               (macc key ~ i.ads)
         ads  t.ads
+        res  (mix (doub res) (macc key ~ i.ads))
       ==
     ::                                                  ::  ++siva:aes:crypto
     ++  siva                                            ::  AES-128 SIV

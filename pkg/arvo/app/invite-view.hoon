@@ -32,7 +32,7 @@
 ::
 ++  on-save  on-save:def
 ++  on-load
-  |=  old=vase
+  |=  [old=vase breach=?]
   ^-  (quip card _this)
   [~ this]
 ::

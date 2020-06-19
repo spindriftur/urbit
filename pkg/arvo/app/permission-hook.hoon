@@ -39,7 +39,7 @@
   ++  on-init  on-init:def
   ++  on-save  !>(state)
   ++  on-load
-    |=  old=vase
+    |=  [old=vase breach=?]
     ^-  (quip card _this)
     [~ this(state !<(state-0 old))]
   ::
@@ -91,7 +91,7 @@
       ?>  ?=([* ^] wire)
       ::  if we're not actively using it, we can safely ignore the %kick.
       ::
-      ?.  (~(has by synced) t.wire)
+      ?.  |((~(has by synced) t.wire) =(our.bowl ship.owner-access))
         [~ this]
       ::  otherwise, resubscribe.
       ::

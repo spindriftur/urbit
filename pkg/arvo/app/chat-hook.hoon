@@ -62,7 +62,7 @@
     ==
   ++  on-save   !>(state)
   ++  on-load
-    |=  old-vase=vase
+    |=  [old-vase=vase breach=?]
     ^-  (quip card _this)
     |^
     =/  old  !<(versioned-state old-vase)
@@ -381,6 +381,7 @@
     :*  [%give %kick ~[[%mailbox path.act]] ~]
         [%give %fact [/synced]~ %chat-hook-update !>([%initial synced])]
         (pull-wire u.ship [%mailbox path.act])
+        (pull-wire u.ship [%store path.act])
         (pull-backlog-subscriptions u.ship path.act)
     ==
   ==
@@ -560,8 +561,11 @@
   ?:  =(wir /permissions)
     :_  state
     [%pass /permissions %agent [our.bol %permission-store] %watch /updates]~
+  ?:  =(wir /invites)
+    :_  state
+    [%pass /invites %agent [our.bol %invite-store] %watch /invitatory/chat]~
   ::
-  ?+  wir  !!
+  ?+  wir  ~|("kick on unknown wire: {<wir>}" !!)
       [%store @ *]
     ~&  store-kick+wir
     ?.  (~(has by synced) t.wir)  [~ state]

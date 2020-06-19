@@ -55,10 +55,13 @@
 ++  state
   $:  :: state version
       ::
-      %5
+      %6
       :: agents by ship
       ::
       =agents
+      ::  gall state for importing
+      ::
+      =lore
   ==
 ::  +subscribers: subscriber data
 ::
@@ -249,6 +252,12 @@
       agents     t.agents
       ..mo-core  (mo-reboot force i.agents our)
     ==
+  ++  mo-book
+    |=  =lore
+    ^+  mo-core
+    =.  lore.state
+      lore
+    mo-core
   ::
   ::  +mo-pass: prepend a standard %pass to the current list of moves.
   ::
@@ -1395,9 +1404,84 @@
       =^  maybe-tang  ap-core
         %+  ap-ingest  ~
         ?~  maybe-vase
-          |.  on-init:ap-agent-core
-        |.  (on-load:ap-agent-core u.maybe-vase)
+           ap-new-state
+        |.  (on-load:ap-agent-core u.maybe-vase |)
+
       [maybe-tang ap-core]
+    ::
+    ::  +ap-new-state: get initial state for agent
+    ::
+    ++  ap-new-state
+      ^?  |.
+      =^  init-cards  agent.current-agent
+        on-init:ap-agent-core
+      =/  old-state=(unit [state=* wex=boat sup=bitt])
+        (~(get by lore.state) agent-name)
+      ?~  old-state
+        [init-cards agent.current-agent]
+      =/  new-state=vase
+        :-  p:on-save:ap-agent-core
+        state.u.old-state
+      |^
+      =^  load-cards  agent.current-agent
+        (on-load:ap-agent-core new-state %.y)
+      =^  leave-cards  agent.current-agent
+        (leave-incoming ~(val by sup.u.old-state))
+      =^  [init-cards=(list card:agent) kick-cards=(list card:agent)]
+          agent.current-agent
+          ::
+        (kick-outgoing ~(tap by wex.u.old-state))
+      :_  agent.current-agent
+      ;:  weld
+        init-cards
+        load-cards
+        leave-cards
+        kick-cards
+      ==
+      ::
+      ++  leave-incoming
+        =|  cards=(list card:agent)
+        |=  subs=(list (pair ship path))
+        ^-  (quip card:agent _agent.current-agent)
+        ?~  subs
+          [cards agent.current-agent]
+        =*  path  q.i.subs
+        ::
+        =^  new-cards  agent.current-agent
+          (on-leave:ap-agent-core path)
+        $(cards (weld cards new-cards), subs t.subs)
+      ::
+      ++  kick-outgoing
+        =|  cards=(list card:agent)
+        =/  =sign:agent
+          [%kick ~]
+        |=  subs=(list [[=wire =ship =term] acked=? =path])
+        ^-  [[(list card:agent) (list card:agent)] _agent.current-agent]
+        ?~  subs
+          :_  agent.current-agent
+          :-  init-cards
+          cards
+        =*  sub  i.subs
+        =.  init-cards
+          %+  skip
+            init-cards
+          |=  =card:agent
+          ^-  ?
+          ?.  ?=(%pass -.card)  %.n
+          ?.  =(p.card wire)  %.n
+          ?.  ?=(%agent -.q.card)  %.n
+          ?.  &(=(ship.q.card ship) =(name.q.card term))
+            %.n
+          ?:  ?=(%watch -.task.q.card)
+            =(path.sub path.task.q.card)
+          ?:  ?=(%watch-as -.task.q.card)
+            =(path.sub path.task.q.card)
+          %.n
+        ::
+        =^  new-cards  agent.current-agent
+          (on-agent:ap-agent-core wire.sub sign)
+        $(cards (weld new-cards cards), subs t.subs)
+      --
     ::  +ap-silent-delete: silent delete.
     ::
     ++  ap-silent-delete
@@ -1611,6 +1695,9 @@
       %goad
     mo-abet:(mo-goad:initialised force.task agent.task)
   ::
+      %book
+    mo-abet:(mo-book:initialised lore.task)
+  ::
       %sear
     mo-abet:(mo-filter-queue:initialised ship.task)
   ::
@@ -1691,24 +1778,107 @@
   =?  all-state  ?=(%4 -.all-state)
     (state-4-to-5 all-state)
   ::
-  ?>  ?=(%5 -.all-state)
+  =?  all-state  ?=(%5 -.all-state)
+    (state-5-to-6 all-state)
+  ::
+  ?>  ?=(%6 -.all-state)
   gall-payload(state all-state)
   ::
   ::  +all-state: upgrade path
   ::
-  ++  all-state  $%(state-0 state-1 state-2 state-3 state-4 ^state)
+  ++  all-state  $%(state-0 state-1 state-2 state-3 state-4 state-5 ^state)
+  ::
+  ++  state-5-to-6
+    |=  =state-5
+    ^-  ^state
+    =/  running=(map term running-agent)
+      %-  ~(run by running.agents-3.state-5)
+      |=  =running-agent-3
+      ^-  running-agent
+      %=  running-agent-3
+        agent-3  (agent-3-to-6 agent-3.running-agent-3)
+      ==
+    [%6 agents-3.state-5(running running) ~]
+  ::
+  ++  state-5
+    $:  %5
+        =agents-3
+    ==
+  ::
+  ++  agent-3-to-6
+    |=  =agent-3
+    ^-  agent
+    =>  |%
+        ++  cards-4-to-5
+          |=  cards=(list card:^agent-3)
+          ^-  (list card:agent)
+          %+  turn  cards
+          |=  =card:^agent-3
+          ^-  card:agent
+          card
+        --
+    |_  =bowl:gall
+    +*  this  .
+        pass  ~(. agent-3 bowl)
+    ++  on-init
+      =^  cards  agent-3  on-init:pass
+      [(cards-4-to-5 cards) this]
+    ::
+    ++  on-save
+      on-save:pass
+    ::
+    ++  on-load
+      |=  [old-state=vase breached=?]
+      =^  cards  agent-3  (on-load:pass old-state)
+      [(cards-4-to-5 cards) this]
+    ::
+    ++  on-poke
+      |=  [=mark =vase]
+      =^  cards  agent-3  (on-poke:pass mark vase)
+      [(cards-4-to-5 cards) this]
+    ::
+    ++  on-watch
+      |=  =path
+      =^  cards  agent-3  (on-watch:pass path)
+      [(cards-4-to-5 cards) this]
+    ::
+    ++  on-leave
+      ^+  on-leave:*agent
+      |=  =path
+      =^  cards  agent-3  (on-leave:pass path)
+      [(cards-4-to-5 cards) this]
+    ::
+    ++  on-peek
+      |=  =path
+      (on-peek:pass path)
+    ::
+    ++  on-agent
+      |=  [=wire =sign:agent:gall]
+      =^  cards  agent-3  (on-agent:pass wire sign)
+      [(cards-4-to-5 cards) this]
+    ::
+    ++  on-arvo
+      |=  [=wire =sign-arvo]
+      =^  cards  agent-3  (on-arvo:pass wire sign-arvo)
+      [(cards-4-to-5 cards) this]
+    ::
+    ++  on-fail
+      |=  [=term =tang]
+      =^  cards  agent-3  (on-fail:pass term tang)
+      [(cards-4-to-5 cards) this]
+    --
   ::
   ++  state-4-to-5
     |=  =state-4
-    ^-  ^state
+    ^-  state-5
     %=    state-4
         -  %5
-        outstanding.agents  ~
+        outstanding.agents-3  ~
     ==
   ::
   ++  state-4
     $:  %4
-        =agents
+        =agents-3
     ==
   ::
   ++  state-3-to-4
@@ -1716,12 +1886,102 @@
     ^-  state-4
     %=    state-3
         -  %4
-        outstanding.agents  ~
+        outstanding.agents-3  ~
     ==
+  ::
+  ++  agents-3
+    $:  system-duct=duct
+        outstanding=(map [wire duct] (qeu remote-request))
+        contacts=(set ship)
+        running=(map term running-agent-3)
+        blocked=(map term blocked)
+    ==
+  ::
+  ++  running-agent-3
+    $:  cache=worm
+        control-duct=duct
+        live=?
+        =stats
+        =subscribers
+        =agent-3
+        =beak
+        marks=(map duct mark)
+    ==
+  ::
+  ++  agent-3
+    =<  form
+    |%
+    +$  step  (quip card form)
+    +$  card  (wind note gift)
+    +$  note
+      $%  [%arvo =note-arvo]
+          [%agent [=ship name=term] =task]
+      ==
+    +$  task
+      $%  [%watch =path]
+          [%watch-as =mark =path]
+          [%leave ~]
+          [%poke =cage]
+          [%poke-as =mark =cage]
+      ==
+    +$  gift
+      $%  [%fact paths=(list path) =cage]
+          [%kick paths=(list path) ship=(unit ship)]
+          [%watch-ack p=(unit tang)]
+          [%poke-ack p=(unit tang)]
+      ==
+    +$  sign
+      $%  [%poke-ack p=(unit tang)]
+          [%watch-ack p=(unit tang)]
+          [%fact =cage]
+          [%kick ~]
+      ==
+    ++  form
+      $_  ^|
+      |_  bowl
+      ++  on-init
+        *(quip card _^|(..on-init))
+      ::
+      ++  on-save
+        *vase
+      ::
+      ++  on-load
+        |~  old-state=vase
+        *(quip card _^|(..on-init))
+      ::
+      ++  on-poke
+        |~  [mark vase]
+        *(quip card _^|(..on-init))
+      ::
+      ++  on-watch
+        |~  path
+        *(quip card _^|(..on-init))
+      ::
+      ++  on-leave
+        |~  path
+        *(quip card _^|(..on-init))
+      ::
+      ++  on-peek
+        |~  path
+        *(unit (unit cage))
+      ::
+      ++  on-agent
+        |~  [wire sign]
+        *(quip card _^|(..on-init))
+      ::
+      ++  on-arvo
+        |~  [wire sign-arvo]
+        *(quip card _^|(..on-init))
+      ::
+      ++  on-fail
+        |~  [term tang]
+        *(quip card _^|(..on-init))
+      --
+    --
   ::
   ++  state-3
     $:  %3
-        =agents
+        =agents-3
     ==
   ::
   ++  state-2-to-3
@@ -1732,7 +1992,7 @@
         running.agents-2
       %-  ~(run by running.agents-2.state-2)
       |=  =running-agent-2
-      ^-  running-agent
+      ^-  running-agent-3
       %=  running-agent-2
         agent-2  (agent-2-to-3 agent-2.running-agent-2)
       ==
@@ -1740,11 +2000,11 @@
   ::
   ++  agent-2-to-3
     |=  =agent-2
-    ^-  agent
+    ^-  agent-3
     =>  |%
         ++  cards-2-to-3
           |=  cards=(list card:^agent-2)
-          ^-  (list card:agent)
+          ^-  (list card:agent-3)
           %+  turn  cards
           |=  =card:^agent-2
           ^-  card:agent
@@ -2087,6 +2347,14 @@
   ::
   ?.  =([%$ %da now] coin)
     ~
+  ?:  =(%a term)
+    =/  =lore
+      %-  ~(run by running.agents.state)
+      |=  ag=running-agent
+      :+  q:on-save:agent.ag
+        outgoing.subscribers.ag
+      incoming.subscribers.ag
+    ``noun+!>(lore)
   ::
   ?.  (~(has by running.agents.state) desk)
     (some ~)

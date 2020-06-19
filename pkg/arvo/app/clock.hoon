@@ -37,7 +37,7 @@
 ::
 ++  on-save   !>(%3)
 ++  on-load
-  |=  old-state=vase
+  |=  [old-state=vase breach=?]
   ^-  (quip card _this)
   =/  old  !<(?(~ %1 %2 %3) old-state)
   =^  cards  this
