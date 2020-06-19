@@ -1200,6 +1200,23 @@ _pier_pill_parse(u3_noun pil)
     bot_u.use = u3kb_weld(u3k(pil_r), bot_u.use);
   }
 
+  //  optionally append gall %book ovum for on-boot import
+  //TODO  how sane is constructing an ovum in vere?
+  //      do we want to scry it out instead?
+  //TODO  load from old pier instead of file?
+  //
+  if (u3_Host.ops_u.gol_c) {
+    u3l_log("pier: importing old gall state from %s\n", u3_Host.ops_u.gol_c);
+
+    u3_noun jam = u3m_file(u3_Host.ops_u.gol_c);
+    u3_noun lor = u3ke_cue(jam);
+
+    //  [[%$ %gall ~] [%book lore]]
+    u3_noun ovo = u3i_cell(u3i_trel(u3_nul, c3_s4('g','a','l','l'), u3_nul),
+                           u3i_cell(c3__book, lor));
+    bot_u.use = u3kb_weld(bot_u.use, u3i_cell(ovo, u3_nul));
+  }
+
   u3z(pro); u3z(pil);
 
   return bot_u;

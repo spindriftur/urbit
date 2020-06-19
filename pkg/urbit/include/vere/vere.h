@@ -291,6 +291,7 @@
         c3_o    tex;                        //  -x, exit after loading
         c3_c*   pek_c;                      //  -X, scry path (/vc/desk/path)
         c3_c*   puk_c;                      //  -Y, scry result filename
+        c3_c*   gol_c;                      //  -Z, old gall state to inject
       } u3_opts;
 
     /* u3_host: entire host.
