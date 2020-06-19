@@ -931,7 +931,7 @@ _pier_on_scry_done(void* vod_p, u3_noun nun)
   else {
     u3l_log("pier: scry succeeded\n");
 
-    u3_atom jam = u3ke_jam(res);
+    u3_atom jam = u3qe_jam(res);
     c3_w siz_w = u3r_met(3, jam);
     c3_y* dat_y = c3_malloc(siz_w);
     u3r_bytes(0, siz_w, dat_y, jam);
@@ -948,10 +948,14 @@ _pier_on_scry_done(void* vod_p, u3_noun nun)
     u3l_log("pier: scry in .urb/put/%s.jam\n", nam_c);
     fclose(fil_u);
     c3_free(dat_y);
+
+    u3z(jam);
   }
 
   u3l_log("pier: exit");
   u3_pier_exit(pir_u);
+
+  u3z(nun);
 }
 
 /* _pier_on_lord_live(): worker is ready.
@@ -998,9 +1002,10 @@ _pier_on_lord_live(void* vod_p)
         //  run the requested scry, jam to disk, then exit
         //
         u3l_log("pier: scry\n");
-        u3_lord_peek_last(god_u, u3_nul, car, dek, pax,
+        u3_lord_peek_last(god_u, u3_nul, u3k(car), u3k(dek), u3k(pax),
                           pir_u, _pier_on_scry_done);
       }
+      u3z(pex);
     }
     else if ( god_u->eve_d < log_u->dun_d ) {
       c3_d eve_d;
