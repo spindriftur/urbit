@@ -704,6 +704,7 @@
   ::  /ax/protocol/version         @
   ::  /ax/peers                    (map ship ?(%alien known))
   ::  /ax/peers/[ship]             ship-state
+  ::  /ax/peers/[ship]/route       [direct=? =lane]  ::TODO  just lane?
   ::  /ax/bones/[ship]             [snd=(set bone) rcv=(set bone)]
   ::  /ax/snd-bones/[ship]/[bone]  vase
   ::
@@ -717,12 +718,19 @@
     !>  ^-  (map ship ?(%alien %known))
     (~(run by peers.ames-state) head)
   ::
-      [%peers @ ~]
+      [%peers @ *]
     =/  who  (slaw %p i.t.tyl)
     ?~  who  [~ ~]
     ?~  peer=(~(get by peers.ames-state) u.who)
       [~ ~]
-    ``noun+!>(u.peer)
+    ?+  t.t.tyl  [~ ~]
+      ~  ``noun+!>(u.peer)
+    ::
+        [%route ~]
+      ?.  ?=(%known -.u.peer)  [~ ~]
+      ?~  route.u.peer  [~ ~]
+      ``noun+!>(u.route.u.peer)
+    ==
   ::
       [%bones @ ~]
     =/  who  (slaw %p i.t.tyl)

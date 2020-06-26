@@ -46,6 +46,42 @@
     c3_y          ver_y;                //  protocol version
   } u3_ames;
 
+/* ca_head: ames packet header
+*/
+  typedef struct _ca_head {
+    c3_y ver_y;                         //  protocol version
+    c3_l mug_l;                         //  truncated mug hash
+    c3_y sen_y;                         //  sender size
+    c3_y rec_y;                         //  receiver size
+    c3_o enc_o;                         //  encrypted?
+  } ca_head;
+
+/* ca_body: ames packet body
+*/
+  typedef struct _ca_body {
+    u3_noun sen;                        //  sender
+    u3_noun rec;                        //  receiver
+    u3_noun con;                        //  (jam [origin content])
+  } ca_body;
+
+/* ca_pact: deconstructed packet
+*/
+  typedef struct _ca_pact {
+    _u3_ames* sam_u;                    //  ames backpointer
+    ca_head   hed_u;                    //  header
+    ca_body   bod_u;                    //  body
+  } ca_pact;
+
+/* _ca_mug_body(): truncated mug hash of bytes
+*/
+static c3_l
+_ca_mug_body(c3_w len_w, c3_y* byt_y)
+{
+  //  mask off ((1 << 20) - 1)
+  //
+  return u3r_mug_bytes(byt_y, len_w) & 0xfffff;
+}
+
 /* _ames_alloc(): libuv buffer allocator.
 */
 static void
@@ -359,6 +395,50 @@ _ames_ef_send(u3_ames* sam_u, u3_noun lan, u3_noun pac)
   u3z(lan); u3z(pac);
 }
 
+static u3_noun
+_ames_serialize_packet(ca_pact* pac_u) {
+
+  ca_body* bod_u = pac_u->&bod_u;
+  c3_w     bod_w = u3r_met(3, bod_u->con);
+
+  ca_head* hed_u = pac_u->&hed_u;
+  c3_w     hed_w = hed_u->ver_y
+                 | (hed_u->mug_l << 3)
+                 | (hed_u->sen_y << 23)
+                 | (hed_u->rec_y << 25)
+                 | (hed_u->enc_o << 26);
+  u3_noun  hed   = u3i_words(1, &hed_w);
+
+  //TODO  (hed_w << bod_w)  ???
+
+  c3_free(pac_u);
+  return
+}
+
+static void
+_ames_rout_scry_cb(void* vod_p, u3_noun nun) {
+  ca_pact* pac_u = vod_p;
+  u3_weak  rot = u3r_at(7, nun); //TODO maybe want scry to produce lane instead
+
+  if (u3_none == rot) {
+    //    - if scry fails, set a flag and just inject the packet
+  }
+  else if (c3n == u3du(rot)) {
+    u3m_p("ames: weird route", rot);
+  }
+  else {
+    //      - body = +:(cue packet)
+    u3_noun bod = u3t(u3ke_cue(pac_u->con););
+    //      - (jam [`new-lane body])
+    u3_noun lan = u3t(rot);
+    u3_atom jam = u3ke_jam(u3nc(u3k(lan), bod)); //TODO refcount necessary?
+    //      - recalculate mug
+    pac_u->mug_l = u3r_mug(jam) & ((1 << 20) - 1);
+    //      - re-serialize packet and send
+    _ames_ef_send(pac_u->sam_u, lan, _ames_serialize_packet(pac_u))
+  }
+}
+
 /* _ames_recv_cb(): receive callback.
 */
 static void
@@ -370,12 +450,85 @@ _ames_recv_cb(uv_udp_t*        wax_u,
 {
   u3_ames* sam_u = wax_u->data;
 
+  c3_o pas_o = c3y;
+
   //  data present, and protocol version in header matches ours
   //
-  if ( (0 < nrd_i)
-    && ( (c3n == sam_u->fit_o)
-      || (sam_u->ver_y == (0x7 & *((c3_w*)buf_u->base))) ) )
+  if ( (4 >= nrd_i)
+    || ( (c3y == sam_u->fit_o)
+      && (sam_u->ver_y != (0x7 & *((c3_w*)buf_u->base))) ) )
   {
+    pas_o = c3n;
+    //  XX unless sender is our sponsee (transitively?)
+    //  XX how dows this interact with forwards ??
+  }
+
+  if (c3y == pas_o) {
+    c3_y*   byt_y = (c3_y*)buf_u->base;
+    c3_y*   bod_y = byt_y + 4;
+    ca_head hed_u;
+
+    //  unpack the header
+    //
+    {
+      c3_w hed_w = (byt_y[0] <<  0)
+                 | (byt_y[1] <<  8)
+                 | (byt_y[2] << 16)
+                 | (byt_y[3] << 24);
+
+      hed_u.ver_y = hed_w & 0x7;
+      hed_u.mug_l = (hed_w >> 3) & ((1 << 20) - 1);
+      hed_u.sen_y = (hed_w >> 23) & 0x3;
+      hed_u.rec_y = (hed_w >> 25) & 0x3;
+      hed_u.enc_o = (hed_w >> 26) & 0x1;
+    }
+
+    //  check the mug against the body
+    //
+    if ( hed_u.mug_l != _ca_mug_body(nrd_i - 4, bod_y) ) {
+      pas_o = c3n;
+    }
+    else {
+      c3_y sen_y = 2 << hed_u.sen_y;
+      c3_y rec_y = 2 << hed_u.rec_y;
+
+      u3_noun sen = u3i_bytes(sen_y, bod_y);
+      u3_noun rec = u3i_bytes(rec_y, bod_y + sen_y);
+
+      c3_d rec_d[2];
+      u3r_chubs(0, 2, rec_d, rec);
+
+      //  if we are not the recipient, attempt to forward statelessly
+      //
+      if ( (rec_d[0] != sam_u->who_d[0])
+        || (rec_d[1] != sam_u->who_d[1]) )
+      {
+        pas_o = c3n;
+
+        //  - allocate struct to capture intermediate details
+        u3_noun  con = u3i_bytes(nrd_i - 4 - sen_y - rec_y,
+                                 bod_y + sen_y + rec_y);
+        ca_pact* pac_u = c3_calloc(sizeof(*pac_u));
+        pac_u->sam_u = sam_u;
+        pac_u->hed_u = hed_u;
+        pac_u->bod_u->sen = sen;
+        pac_u->bod_u->rec = rec;
+        pac_u->bod_u->con = con;
+
+        //  - scry for lane
+        //TODO  if rec is galaxy, can we resolve right away?
+        u3_noun pax = u3nq(u3i_string("peers"),
+                           u3dc("scot", 'p', u3k(rec)),
+                           u3i_string("route"),
+                           u3_nul);
+        u3_lord_peek_last(pir_u->god_u, u3_nul, c3__ax, u3_nul,
+                          pax, pac_u, _ames_rout_scry_cb);
+      }
+    }
+  }
+
+  if (c3y == pas_o) {
+
     u3_noun wir = u3nc(c3__ames, u3_nul);
     u3_noun cad;
 
